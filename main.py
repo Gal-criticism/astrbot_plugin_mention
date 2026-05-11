@@ -1,5 +1,29 @@
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
+from aiohttp import web
+import asyncio
+import astrbot.api.message_components as Comp
+
+routes = web.RouteTableDef()
+
+
+@routes.post("/send")
+async def handle_send(request):
+    data = await request.json()
+    umo = data.get("umo")
+    message = data.get("message", "")
+    at_user = data.get("at_user")
+
+    if not umo or not message:
+        return web.json_response({"error": "缺少 umo 或 message"}, status=400)
+
+    chain = []
+    if at_user:
+        chain.append(Comp.At(qq=str(at_user)))
+    chain.append(Comp.Plain(text=message))
+
+    await handle_send._plugin.context.send_message(umo, chain)
+    return web.json_response({"ok": True})
 
 
 @register(
@@ -11,43 +35,16 @@ from astrbot.api import logger
 class MentionPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
-        # 注册 Web API
-        context.register_web_api(
-            "/mention/send",
-            self.handle_send,
-            ["POST"],
-            "发送艾特或私聊消息",
-        )
+        handle_send._plugin = self
 
-    async def handle_send(self):
-        """处理发送消息的 HTTP API 请求"""
-        from quart import request
-        import astrbot.api.message_components as Comp
-
-        try:
-            data = await request.get_json()
-            umo = data.get("umo")
-            message = data.get("message", "")
-            at_user = data.get("at_user")
-
-            if not umo:
-                return {"status": "error", "message": "缺少 umo 参数"}, 400
-            if not message:
-                return {"status": "error", "message": "缺少 message 参数"}, 400
-
-            # 构建消息链
-            chain = []
-            if at_user:
-                chain.append(Comp.At(qq=str(at_user)))
-            chain.append(Comp.Plain(text=message))
-
-            # 发送消息
-            await self.context.send_message(umo, chain)
-
-            return {"status": "ok", "message": "消息已发送", "data": {"umo": umo}}
-        except Exception as e:
-            logger.exception("发送消息失败")
-            return {"status": "error", "message": str(e)}, 500
+    async def initialize(self):
+        app = web.Application()
+        app.add_routes(routes)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, "0.0.0.0", 8080)
+        await site.start()
+        logger.info("艾特插件已启动: http://0.0.0.0:8080/send")
 
     async def terminate(self):
         pass
