@@ -1,0 +1,6 @@
+name: astrbot_plugin_mention
+display_name: 艾特/私聊消息发送
+desc: 提供HTTP API接口，支持艾特群成员或发送私聊消息
+version: v1.0.0
+author: sei
+repo: https://github.com/Gal-criticism/astrbot_plugin_mention
