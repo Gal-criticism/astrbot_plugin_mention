@@ -1,5 +1,6 @@
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
+from astrbot.core.message.message_event_result import MessageChain
 import astrbot.api.message_components as Comp
 from quart import request, jsonify
 
@@ -35,7 +36,9 @@ class MentionPlugin(Star):
                 chain.append(Comp.At(qq=str(at_user)))
             chain.append(Comp.Plain(text=message))
 
-            await self.context.send_message(umo, chain)
+            # 包装成 MessageChain
+            msg_chain = MessageChain(chain)
+            await self.context.send_message(umo, msg_chain)
             return jsonify({"ok": True})
         except Exception as e:
             logger.error(f"发送消息失败: {e}")
