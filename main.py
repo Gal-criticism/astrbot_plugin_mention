@@ -31,14 +31,13 @@ class MentionPlugin(Star):
             if not umo or not message:
                 return jsonify({"error": "缺少 umo 或 message"}), 400
 
-            chain = []
+            chain = MessageChain(chain=[])
             if at_user:
-                chain.append(Comp.At(qq=str(at_user)))
-            chain.append(Comp.Plain(text=message))
+                chain.at(qq=str(at_user))
+            chain.message(message=message)
 
             # 包装成 MessageChain
-            msg_chain = MessageChain(chain)
-            await self.context.send_message(umo, msg_chain)
+            await self.context.send_message(umo, chain)
             return jsonify({"ok": True})
         except Exception as e:
             logger.error(f"发送消息失败: {e}")
